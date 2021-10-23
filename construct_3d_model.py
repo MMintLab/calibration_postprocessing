@@ -17,7 +17,7 @@ DATA_SAVE_DIR : Directory where you want to save the 3D model
 TARGET_DIR = 'data/scraping_plastic/plastic_spatula/scan_0.ply'
 SOURCE_LIST_DIR = 'config/modeling_plastic_spatula.txt'
 DATA_DIR = 'data/plastic_spatula'
-DATA_SAVE_DIR = 'data/nominal_pcd/plastic_spatula.ply'
+DATA_SAVE_DIR = 'data/nominal_pcd/plastic_spatula_pcd_w_hand.ply'
 
 
 
@@ -32,5 +32,5 @@ if __name__ == '__main__':
     source_path_list = open(source_path, "r").read().split(',\n')  ## Train dataset
     c3m = contruct_3d_model( target_path , icp_threshold = 2.5, visualize = False)
     c3m.stitch_pcd(source_path_list[1:])
-    c3m.write_stitched_pcd(save_path)
+    c3m.write_stitched_pcd(save_path, type = 'obj_w_hand') # type = 'obj_w_hand' or 'obj'
 

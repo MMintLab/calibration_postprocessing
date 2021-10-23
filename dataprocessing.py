@@ -2,10 +2,9 @@ from utility import *
 import os
 
 ## GLOBAL PARAMETERS ##
-DATA_DIR = 'data/scraping_plastic/scraping_gt_845_830'
-DATA_SAVE_DIR = 'data/scraping_plastic/transformed_gt_plastic_845_830'
-# TASK_NOMINAL_DIR = 'data/scraping/scrape_infer/scan_0.ply'
-TARGET_DIR = 'data/nominal_pcd/plastic_spatula.ply'
+DATA_DIR = 'data/scraping_plastic/scraping_gt_845_835'
+DATA_SAVE_DIR = 'data/scraping_plastic/transformed_gt_plastic_845_835'
+TARGET_DIR = 'data/nominal_pcd/plastic_spatula_pcd_w_hand.ply'
 
 
 if __name__ == '__main__':

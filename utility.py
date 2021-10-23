@@ -141,9 +141,13 @@ class contruct_3d_model(ICP_class):
         #     o3d.visualization.draw_geometries([self.target_object ])
 
 
-    def write_stitched_pcd(self, save_dir):
+    def write_stitched_pcd(self, save_dir, type):
         final_model = segment_component(self.target_pcd)
         final_object_model = final_model.pcd_object
+
+        if type == 'obj_w_hand':
+            final_object_model = self._add_two_pointcloud(final_model.pcd_object, final_model.pcd_hand)
+
         final_object_model = final_object_model.voxel_down_sample(voxel_size=0.5)
 
         cl, ind = final_object_model.remove_radius_outlier(nb_points=200, radius=5)
@@ -161,32 +165,6 @@ class contruct_3d_model(ICP_class):
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 class coordinate_postprocessing(ICP_class):
     def __init__(self, object_model_path, icp_threshold = 100, visualize= None, task_nominal_path = None):
         ## Standard Coordinate
@@ -194,9 +172,9 @@ class coordinate_postprocessing(ICP_class):
         target_pcd.scale(1000, np.array([0., 0., 0.]))
         target_pcd = target_pcd.voxel_down_sample(voxel_size=0.5)
 
-
-        # self.target_palm = self.palm(target_pcd)
-        self.target_object =  self.object(target_pcd)
+        target_segment = segment_component(target_pcd)
+        self.target_hand = target_segment.pcd_hand
+        self.target_object =  target_segment.pcd_object
         self.threshold = icp_threshold
 
         ####### REMOVE ######
@@ -238,40 +216,21 @@ class coordinate_postprocessing(ICP_class):
         pcd = o3d.io.read_point_cloud(pc_path)
         pcd = pcd.voxel_down_sample(voxel_size=voxel_size)
 
+        source_segment = segment_component(pcd)
         self.pcd = pcd
-        self.palm_pcd = self.palm(copy.deepcopy(pcd))
-        self.object_pcd = self.object(copy.deepcopy(pcd))
+        self.source_hand = source_segment.pcd_hand
+        self.source_object = source_segment.pcd_object
         # o3d.visualization.draw_geometries([self.task_nominal_object, self.task_nominal_palm, self.palm_pcd , self.object_pcd])
 
         # object_pcd = crop_boundingbox(copy.deepcopy(pcd), lower_bound,upper_bound )
-
-
-    def palm(self, pcd, scale = None):
-
-        bbox = o3d.geometry.AxisAlignedBoundingBox([-50, -100, 30], [50, 100, 110])
-        pcd = copy.deepcopy(pcd).crop(bbox)
-
-
-        rgb = np.array(pcd.colors)
-        idx = np.where( np.average(rgb, axis=1) > 0.15)[0]
-        pcd = pcd.select_by_index(idx)
-        return pcd
-
-    def object(self, pcd, scale = None):
-        bbox = o3d.geometry.AxisAlignedBoundingBox([-50, -50, -300], [50, 50, -20])
-        pcd = copy.deepcopy(pcd).crop(bbox)
-        rgb = np.array(pcd.colors)
-        idx = np.where( np.average(rgb, axis=1) > 0.15)[0]
-        pcd = pcd.select_by_index(idx)
-        return pcd
 
 
     def icp(self):
         # _icp = ICP_class(self.palm_pcd, self.task_nominal_palm , 200)
         # _icp = ICP_class(self.object_pcd, self.target_object, self.threshold)
 
-        icp_tf = super().ICP(self.object_pcd, self.target_object, self.threshold)
-        # icp_tf = super().ICP(self.source_hand, self.target_hand, self.threshold, trans_init)
+        # icp_tf = super().ICP(self.object_pcd, self.target_object, self.threshold)
+        icp_tf = super().ICP(self.source_hand, self.target_hand, self.threshold)
         self.pose = icp_tf
 
         if self.visualize:
