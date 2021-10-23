@@ -187,46 +187,48 @@ class contruct_3d_model(ICP_class):
 
 
 
-class coordinate_postprocessing:
-    def __init__(self, object_model_path, task_nominal_path, icp_threshold = 100, visualize= None):
+class coordinate_postprocessing(ICP_class):
+    def __init__(self, object_model_path, icp_threshold = 100, visualize= None, task_nominal_path = None):
         ## Standard Coordinate
         target_pcd = o3d.io.read_point_cloud(object_model_path)
+        target_pcd.scale(1000, np.array([0., 0., 0.]))
         target_pcd = target_pcd.voxel_down_sample(voxel_size=0.5)
 
 
-        self.target_palm = self.palm(target_pcd)
+        # self.target_palm = self.palm(target_pcd)
         self.target_object =  self.object(target_pcd)
         self.threshold = icp_threshold
 
         ####### REMOVE ######
-        task_nominal_pcd = o3d.io.read_point_cloud(task_nominal_path)
-        task_nominal_pcd = task_nominal_pcd .voxel_down_sample(voxel_size=0.5)
-        self.task_nominal_palm = self.palm(task_nominal_pcd)
-        self.task_nominal_object = self.object(task_nominal_pcd)
+        # task_nominal_pcd = o3d.io.read_point_cloud(task_nominal_path)
+        # task_nominal_pcd = task_nominal_pcd .voxel_down_sample(voxel_size=0.5)
+        # self.task_nominal_palm = self.palm(task_nominal_pcd)
+        # self.task_nominal_object = self.object(task_nominal_pcd)
 
         #####################
 
         self.visualize = visualize
-        self.off_trans = self.calculate_offset_trans()
+        # self.off_trans = self.calculate_offset_trans()
         self.pose = None
         self.pcd = None
         self.palm_pcd = None
         self.object_pcd = None
+        self.threshold = icp_threshold
 
-    def calculate_offset_trans(self):
-        trans_init = np.array([[-1,0,0,0],[0,-1,0,0],[0,0,1,0],[0,0,0,1]]) ## TODO
-        tno_temp = copy.deepcopy(self.task_nominal_object)
-        tno_temp.transform(trans_init)
+    # def calculate_offset_trans(self):
+    #     trans_init = np.array([[-1,0,0,0],[0,-1,0,0],[0,0,1,0],[0,0,0,1]]) ## TODO
+    #     tno_temp = copy.deepcopy(self.task_nominal_object)
+    #     tno_temp.transform(trans_init)
+    #
+    #     # _icp = ICP(tno_temp, self.target_object , self.threshold)
+    #     _icp = ICP_class(self.task_nominal_object, self.target_object, self.threshold, trans_init )
+    #
+    #     if self.visualize:
+    #         _icp.draw_registration_result()
+    #     return _icp.icp_transformation
 
-        # _icp = ICP(tno_temp, self.target_object , self.threshold)
-        _icp = ICP_class(self.task_nominal_object, self.target_object, self.threshold, trans_init )
 
-        if self.visualize:
-            _icp.draw_registration_result()
-        return _icp.icp_transformation
-
-
-    def segment(self, pc_path):
+    def segment(self, pc_path, voxel_size = 0.5):
         '''
         Input: pointcloud directory
         :return: segmented pointcloud
@@ -234,7 +236,7 @@ class coordinate_postprocessing:
 
         print(pc_path)
         pcd = o3d.io.read_point_cloud(pc_path)
-        pcd = pcd.voxel_down_sample(voxel_size=0.5)
+        pcd = pcd.voxel_down_sample(voxel_size=voxel_size)
 
         self.pcd = pcd
         self.palm_pcd = self.palm(copy.deepcopy(pcd))
@@ -244,17 +246,18 @@ class coordinate_postprocessing:
         # object_pcd = crop_boundingbox(copy.deepcopy(pcd), lower_bound,upper_bound )
 
 
-    def palm(self, pcd):
+    def palm(self, pcd, scale = None):
+
         bbox = o3d.geometry.AxisAlignedBoundingBox([-50, -100, 30], [50, 100, 110])
         pcd = copy.deepcopy(pcd).crop(bbox)
-        # o3d.visualization.draw_geometries([ pcd ] )
+
 
         rgb = np.array(pcd.colors)
         idx = np.where( np.average(rgb, axis=1) > 0.15)[0]
         pcd = pcd.select_by_index(idx)
         return pcd
 
-    def object(self, pcd):
+    def object(self, pcd, scale = None):
         bbox = o3d.geometry.AxisAlignedBoundingBox([-50, -50, -300], [50, 50, -20])
         pcd = copy.deepcopy(pcd).crop(bbox)
         rgb = np.array(pcd.colors)
@@ -265,16 +268,19 @@ class coordinate_postprocessing:
 
     def icp(self):
         # _icp = ICP_class(self.palm_pcd, self.task_nominal_palm , 200)
-        _icp = ICP_class(self.palm_pcd, self.task_nominal_palm, 200)
-        self.pose = _icp.icp_transformation
+        # _icp = ICP_class(self.object_pcd, self.target_object, self.threshold)
+
+        icp_tf = super().ICP(self.object_pcd, self.target_object, self.threshold)
+        # icp_tf = super().ICP(self.source_hand, self.target_hand, self.threshold, trans_init)
+        self.pose = icp_tf
 
         if self.visualize:
-            _icp.draw_registration_result()
+            super().draw_registration_result()
 
 
     def save_result(self, filename):
         self.pcd.transform(self.pose)
-        self.pcd.transform(self.off_trans)
+        # self.pcd.transform(self.off_trans)
         self.pcd.scale(0.001, np.array([0.,0.,0.]))
         o3d.io.write_point_cloud(filename, self.pcd )
 
