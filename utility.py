@@ -18,9 +18,9 @@ class ICP_class:
         return self.icp_transformation
 
     def _filter_pcd(self, pcd):
-        cl, ind = pcd.remove_radius_outlier(nb_points=200, radius=5)
-        pcd = pcd.select_by_index(ind)
-        #
+        # cl, ind = pcd.remove_radius_outlier(nb_points=100, radius=5)
+        # pcd = pcd.select_by_index(ind)
+
         # cl, ind = pcd.remove_radius_outlier(nb_points=200, radius=5)
         # pcd = pcd.select_by_index(ind)
         return pcd
@@ -75,31 +75,10 @@ class contruct_3d_model(ICP_class):
 
         self.target_pcd = target_pcd
         self.target_hand = target_component.pcd_hand
-        self.target_object = target_component.object
+        self.target_object = target_component.pcd_object
         self.threshold = icp_threshold
         self.visualize = visualize
 
-    def _update_target(self, pcd1, pcd2):
-        p1_color = np.asarray(pcd1.colors)
-        p2_color = np.asarray(pcd2.colors)
-        new_target_color = np.concatenate((p1_color, p2_color), axis=0)
-
-        p1_point = np.asarray(pcd1.points)
-        p2_point = np.asarray(pcd2.points)
-        new_target_point = np.concatenate((p1_point, p2_point), axis=0)
-
-        new_target = o3d.geometry.PointCloud()
-        new_target.points = o3d.utility.Vector3dVector(new_target_point)
-        new_target.colors = o3d.utility.Vector3dVector(new_target_color)
-
-        self.target_pcd = new_target
-        target_component = segment_component(new_target)
-        self.target_hand = target_component.pcd_hand
-        self.target_object = target_component.object
-
-        # if self.visualize:
-        #     print("visualize stitched pcd")
-        #     o3d.visualization.draw_geometries([self.target_object ])
 
     def stitch_pcd(self, source_path_list):
 
@@ -112,32 +91,97 @@ class contruct_3d_model(ICP_class):
             o3d.visualization.draw_geometries([self.target_pcd])
 
 
-    def write_stitched_pcd(self, save_dir):
-        final_pcd = segment_component(self.target_pcd)
-        final_object_model = final_pcd.pcd_object.scale(0.001, np.array([0., 0., 0.]))  # [mm] scale to [m]
-        # final_object_model = self.target_pcd.scale(0.001, np.array([0., 0., 0.]))  # [mm] scale to [m]
-        o3d.io.write_point_cloud(save_dir, final_object_model)
-
-
     def _compensate_source_pcd_offset(self, source_path):
         print(source_path)
         source_pcd = o3d.io.read_point_cloud(source_path)
         source_pcd = source_pcd.voxel_down_sample(voxel_size=0.5)
         source_component = segment_component(source_pcd)
         self.source_hand = source_component.pcd_hand
-        self.source_object = source_component.object
+        self.source_object = source_component.pcd_object
 
         trans_init = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])  ## TODO
         tno_temp = copy.deepcopy(self.source_hand)
         tno_temp.transform(trans_init)
 
-        icp_tf = super().ICP(self.source_hand, self.target_hand, self.threshold, trans_init)
+        icp_tf = super().ICP( self._add_two_pointcloud(self.source_object, self.source_hand) , self._add_two_pointcloud(self.target_object, self.target_hand), self.threshold, trans_init)
+        # icp_tf = super().ICP(self.source_hand, self.target_hand, self.threshold, trans_init)
         source_pcd.transform(icp_tf)
 
 
         if self.visualize:
             super().draw_registration_result()
         return source_pcd
+
+    def _add_two_pointcloud(self, pcd1, pcd2):
+        p1_color = np.asarray(pcd1.colors)
+        p2_color = np.asarray(pcd2.colors)
+        new_pcd_color = np.concatenate((p1_color, p2_color), axis=0)
+
+        p1_point = np.asarray(pcd1.points)
+        p2_point = np.asarray(pcd2.points)
+        new_pcd_point = np.concatenate((p1_point, p2_point), axis=0)
+
+        new_pcd = o3d.geometry.PointCloud()
+        new_pcd.points = o3d.utility.Vector3dVector(new_pcd_point)
+        new_pcd.colors = o3d.utility.Vector3dVector(new_pcd_color)
+
+        return new_pcd
+
+
+
+    def _update_target(self, pcd1, pcd2):
+        new_target = self._add_two_pointcloud(pcd1, pcd2)
+        target_component = segment_component(new_target)
+        self.target_pcd = new_target
+        self.target_hand = target_component.pcd_hand
+        self.target_object = target_component.pcd_object
+
+        # if self.visualize:
+        #     print("visualize stitched pcd")
+        #     o3d.visualization.draw_geometries([self.target_object ])
+
+
+    def write_stitched_pcd(self, save_dir):
+        final_model = segment_component(self.target_pcd)
+        final_object_model = final_model.pcd_object
+        final_object_model = final_object_model.voxel_down_sample(voxel_size=0.5)
+
+        cl, ind = final_object_model.remove_radius_outlier(nb_points=200, radius=5)
+        final_object_model = final_object_model.select_by_index(ind)
+        cl, ind = final_object_model.remove_radius_outlier(nb_points=200, radius=5)
+        final_object_model = final_object_model.select_by_index(ind)
+        final_object_model = final_object_model.scale(0.001, np.array([0., 0., 0.]))  # [mm] scale to [m]
+
+        print( np.mean( np.array(final_object_model.points), axis=0) )
+        # final_object_model = self.target_pcd.scale(0.001, np.array([0., 0., 0.]))  # [mm] scale to [m]
+        o3d.io.write_point_cloud(save_dir, final_object_model)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -220,7 +264,8 @@ class coordinate_postprocessing:
 
 
     def icp(self):
-        _icp = ICP_class(self.palm_pcd, self.task_nominal_palm , 200)
+        # _icp = ICP_class(self.palm_pcd, self.task_nominal_palm , 200)
+        _icp = ICP_class(self.palm_pcd, self.task_nominal_palm, 200)
         self.pose = _icp.icp_transformation
 
         if self.visualize:
