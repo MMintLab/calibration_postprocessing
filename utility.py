@@ -1,6 +1,7 @@
 import numpy as np
 import open3d as o3d
 import copy
+from o3d_utility import *
 
 class ICP_class:
     def ICP(self, source_pcd, target_pcd, threshold, trans_init = None):
@@ -123,14 +124,18 @@ class contruct_3d_model(ICP_class):
 
         for source_path in source_path_list:
             transformed_source_pcd = self._compensate_source_pcd_offset(source_path)
+
+            if self.visualize:
+                print("visualize stitched pcd")
+                o3d.visualization.draw_geometries([self.target])
             self._update_target( self.target_pcd, transformed_source_pcd)
 
             if self.icp_visualize:
                 super().icp_visualizer()
 
-        if self.visualize:
-            print("visualize stitched pcd")
-            o3d.visualization.draw_geometries([self.target_pcd])
+        custom_draw_geometry_with_rotation(copy.deepcopy(self.target).rotate([[1,0,0],[0,0,1],[0,-1,0]]))
+
+
 
 
     def _compensate_source_pcd_offset(self, source_path):
@@ -142,11 +147,11 @@ class contruct_3d_model(ICP_class):
         self.source_object = source_component.pcd_object
 
         trans_init = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])  ## TODO
-        tno_temp = copy.deepcopy(self.source_hand)
-        tno_temp.transform(trans_init)
+        # tno_temp = copy.deepcopy(self.source_hand)
+        # tno_temp.transform(trans_init)
 
         icp_tf = super().ICP( self._add_two_pointcloud(self.source_object, self.source_hand) , self._add_two_pointcloud(self.target_object, self.target_hand), self.threshold, trans_init)
-        # icp_tf = super().ICP(self.source_hand, self.target_hand, self.threshold, trans_init)
+
         source_pcd.transform(icp_tf)
 
 
@@ -177,10 +182,6 @@ class contruct_3d_model(ICP_class):
         self.target_pcd = new_target
         self.target_hand = target_component.pcd_hand
         self.target_object = target_component.pcd_object
-
-        # if self.visualize:
-        #     print("visualize stitched pcd")
-        #     o3d.visualization.draw_geometries([self.target_object ])
 
 
     def write_stitched_pcd(self, save_dir, type):
