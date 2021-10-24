@@ -2,8 +2,8 @@ from utility import *
 import os
 
 ## GLOBAL PARAMETERS ##
-DATA_DIR = 'data/scraping_plastic/scraping_gt_845_835'
-DATA_SAVE_DIR = 'data/scraping_plastic/transformed_gt_plastic_845_835'
+DATA_DIR = 'data/scraping_plastic/scraping_gt_845_840'
+DATA_SAVE_DIR = 'data/scraping_plastic/transformed_gt_plastic_845_840'
 TARGET_DIR = 'data/nominal_pcd/plastic_spatula_pcd_w_hand.ply'
 
 
@@ -17,7 +17,6 @@ if __name__ == '__main__':
     _, _, filenames = next(os.walk(data_path)) ## Infer Dataset
 
     for deform_idx, f_n in enumerate(filenames):
-        print(f_n)
         cp.segment(os.path.join(data_path,f_n))
         cp.icp()
 

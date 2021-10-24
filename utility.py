@@ -9,13 +9,51 @@ class ICP_class:
         self.threshold = threshold
 
         self.trans_init = trans_init if not trans_init is None else np.eye(4)
-        reg_p2p = o3d.pipelines.registration.registration_icp(source_pcd, target_pcd, threshold,self.trans_init,
+        reg_p2p = o3d.pipelines.registration.registration_icp(self.source, self.target, threshold,self.trans_init,
                                                               estimation_method= o3d.pipelines.registration.TransformationEstimationPointToPoint(),
-                                                              criteria= o3d.pipelines.registration.ICPConvergenceCriteria(
-                                                                  max_iteration=1000))
+                                                              criteria= o3d.pipelines.registration.ICPConvergenceCriteria(max_iteration=1000))
+
+
 
         self.icp_transformation = reg_p2p.transformation
         return self.icp_transformation
+
+    def icp_visualizer(self):
+
+        vis = o3d.visualization.Visualizer()
+        vis.create_window()
+        vis.add_geometry(self.source)
+        vis.add_geometry(self.target)
+
+        ctr = vis.get_view_control()
+        ctr.change_field_of_view(60)
+        ctr.set_lookat([-14.090396391511135, 5.7634012971213266, -89.068332672119141])
+        ctr.set_up([0.078516645474030991, -0.46466849581268738, 0.8819967830908908])
+        ctr.set_zoom(0.8)
+        ctr.set_front([-0.37897176754045897, 0.80439645426745576, 0.45752239701374764])
+
+
+        self.source.paint_uniform_color([1, 0.706, 0])
+        self.target.paint_uniform_color([0, 0.651, 0.929])
+
+        icp_iteration = 100
+        save_image = True
+
+        for i in range(icp_iteration):
+            reg_p2p = o3d.pipelines.registration.registration_icp(self.source, self.target, self.threshold,self.trans_init,
+                                                              estimation_method= o3d.pipelines.registration.TransformationEstimationPointToPoint(),
+                                                              criteria= o3d.pipelines.registration.ICPConvergenceCriteria(
+                                                                  max_iteration=1))
+            self.source.transform(reg_p2p.transformation)
+            vis.update_geometry(self.source)
+
+
+            vis.poll_events()
+            vis.update_renderer()
+            if save_image and not i%4:
+                vis.capture_screen_image("temp_%04d.jpg" % i)
+        vis.destroy_window()
+
 
     def _filter_pcd(self, pcd):
         # cl, ind = pcd.remove_radius_outlier(nb_points=100, radius=5)
@@ -67,7 +105,7 @@ class segment_component():
 
 
 class contruct_3d_model(ICP_class):
-    def __init__(self, target_path, icp_threshold, visualize = False):
+    def __init__(self, target_path, icp_threshold, visualize = False, icp_visualize = False):
 
         target_pcd = o3d.io.read_point_cloud(target_path)
         target_pcd = target_pcd.voxel_down_sample(voxel_size=0.5)
@@ -78,6 +116,7 @@ class contruct_3d_model(ICP_class):
         self.target_object = target_component.pcd_object
         self.threshold = icp_threshold
         self.visualize = visualize
+        self.icp_visualize = icp_visualize
 
 
     def stitch_pcd(self, source_path_list):
@@ -85,6 +124,9 @@ class contruct_3d_model(ICP_class):
         for source_path in source_path_list:
             transformed_source_pcd = self._compensate_source_pcd_offset(source_path)
             self._update_target( self.target_pcd, transformed_source_pcd)
+
+            if self.icp_visualize:
+                super().icp_visualizer()
 
         if self.visualize:
             print("visualize stitched pcd")
@@ -159,7 +201,6 @@ class contruct_3d_model(ICP_class):
         print( np.mean( np.array(final_object_model.points), axis=0) )
         # final_object_model = self.target_pcd.scale(0.001, np.array([0., 0., 0.]))  # [mm] scale to [m]
         o3d.io.write_point_cloud(save_dir, final_object_model)
-
 
 
 

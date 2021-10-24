@@ -18,11 +18,11 @@ class ICP:
         self.threshold = threshold
 
         self.trans_init = trans_init if not trans_init is None else np.eye(4)
-        reg_p2p = o3d.pipelines.registration.registration_icp(source_pcd, target_pcd, threshold,self.trans_init,
-                                                              estimation_method= o3d.pipelines.registration.TransformationEstimationPointToPoint(),
-                                                              criteria= o3d.pipelines.registration.ICPConvergenceCriteria(
-                                                                  max_iteration=1000))
 
+        reg_p2p = o3d.pipelines.registration.registration_icp(self.source_pcd, self.target_pcd, self.threshold, self.trans_init,
+                                                              estimation_method=o3d.pipelines.registration.TransformationEstimationPointToPoint(),
+                                                              criteria=o3d.pipelines.registration.ICPConvergenceCriteria(
+                                                                  max_iteration=1000))
         self.icp_transformation = reg_p2p.transformation
 
     def _filter_pcd(self, pcd):
