@@ -6,7 +6,7 @@
 ## Table of contents
 * [General info](#general-info)
 * [Technologies](#technologies)
-* [Codes](#content)
+* [Codes](#Codes)
 	* [construct_3d_model.py](#construct_3d_model.py)  
 
 ## General info
@@ -14,7 +14,12 @@ This repository is mainly about post-processing pointcloud's frame obtained from
 It assumes when pointcloud is generated from the moving frame (ex. End Effector Frame, Tool Frame), containing inconsistent calibration errors from the camera.
 
 
-## Technologies
+## Installation
+'''
+git clone https://github.com/MMintLab/pointcloud_postprocessing.git
+'''
+
+## Dependencies
 Project is created with:
 Installation | Version
 ------------ | -------------
@@ -22,12 +27,7 @@ python | 3.7.0
 numpy | 1.21.2
 open3d | 0.13.0
 
-## Installation
-'''
-git clone 
-'''
-
-## Content
+## Condes
 - ### contruct_3d_model.py
 
 This code is for constructing 360[deg] 3D object models scanned with Robot.\
