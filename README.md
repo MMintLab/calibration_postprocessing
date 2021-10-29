@@ -1,11 +1,9 @@
 # pointcloud_postprocessing
- 
-## Teaser
 
 ![construct seamless 3d model](figures/git_3d_modelling_teaser.gif)
 
 
-## Table of contents
+# Table of contents
 * [General info](#general-info)
 * [Technologies](#technologies)
 * [How to use](#Codes)
@@ -13,17 +11,17 @@
 	* [dataprocessing.py](#dataprocessing.py)  
 
 
-## General info
+# General info
 This repository is mainly about post-processing pointcloud's frame obtained from Depth camera (ex. Photoneo) and RGB-D (ex. Intel Realsense). 
 It assumes when pointcloud is generated from the *moving frame* (ex. End Effector Frame, Tool Frame), containing inconsistent calibration errors.
 What this project does is to compensate the calibration errors through ICP. The desirable outcome is to reduce the camera to moving object frame calibration error (<0.5mm)
 
-## Installation
+# Installation
 ```
 git clone https://github.com/MMintLab/pointcloud_postprocessing.git
 ```
 
-## Dependencies
+# Dependencies
 Project is created with:
 Installation | Version
 ------------ | -------------
@@ -31,7 +29,7 @@ python | 3.7.0
 numpy | 1.21.2
 open3d | 0.13.0
 
-## Dataset Preparation
+# Dataset Preparation
 Create a data folder in your directory 
 ```
 $ mkdir data
@@ -55,9 +53,9 @@ Example:
 
 
 
-## How to use
+# How to use
 
-### contruct_3d_model.py
+## contruct_3d_model.py
 This code is for constructing 360[deg] 3D object models scanned with Robot.\
 ![Summary of construct_3d_model.py](figures/git_3d_modelling_teaser2.gif)
 
@@ -69,7 +67,7 @@ This code is for constructing 360[deg] 3D object models scanned with Robot.\
 
 
 
-### dataprocessing.py
+## dataprocessing.py
 ![Summary of dataprocessing.py](figures/git-pointcloud_postprocessing.png)
 **Input** : 0,1, ... , M pointclouds of moving objects during robotic tasks. \
 **Output** : 0,1, ... , M pointclouds returned in the consistent frame. The pointcloud with the target frame is set as *TARGET_DIR*. It can either be one of your 0~M pointclouds or the output of the *construct_3d_model.py*. If an object you are interested in deforms during the manipulation, we suggest using the latter option.
