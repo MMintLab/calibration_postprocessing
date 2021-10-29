@@ -1,8 +1,8 @@
 # pointcloud_postprocessing
  
-## Output example
+## Teaser
 
-![construct seamless 3d model](figures/git_calibration_post_processing_teaser.mp4)
+![construct seamless 3d model](figures/git_3d_modelling_teaser.gif)
 
 
 ## Table of contents
@@ -59,6 +59,8 @@ Example:
 
 ### contruct_3d_model.py
 This code is for constructing 360[deg] 3D object models scanned with Robot.\
+![Summary of construct_3d_model.py](figures/git_3d_modelling_teaser2.gif)
+
 **Input** : 0,1, ... , N scans pointcloud scanned from different angles.\
 **Output** : 0,1, ... , N scans stitched together as a single object. The ply file saved in your desired directory that you will define as *DATA_SAVE_DIR*. \
 **Task** 
@@ -66,6 +68,8 @@ This code is for constructing 360[deg] 3D object models scanned with Robot.\
 2. For each iteration (for each scab), it compensates calibration error through ICP. I suggest doing ICP with Robot hand where EE frame is attached.
 
 
+
 ### dataprocessing.py
+![Summary of dataprocessing.py](figures/git-pointcloud_postprocessing.png)
 **Input** : 0,1, ... , M pointclouds of moving objects during robotic tasks. \
 **Output** : 0,1, ... , M pointclouds returned in the consistent frame. The pointcloud with the target frame is set as *TARGET_DIR*. It can either be one of your 0~M pointclouds or the output of the *construct_3d_model.py*. If an object you are interested in deforms during the manipulation, we suggest using the latter option.
