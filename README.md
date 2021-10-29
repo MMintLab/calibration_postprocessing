@@ -2,7 +2,7 @@
  
 ## Output example
 
-![](name-of-giphy.gif)
+![construct seamless 3d model](figures/git_calibration_post_processing_teaser.mp4)
 
 
 ## Table of contents
