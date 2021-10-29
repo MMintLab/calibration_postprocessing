@@ -93,16 +93,38 @@ class segment_component():
         rgb = np.array(pcd.colors)
         idx = np.where(np.average(rgb, axis=1) > 0.15)[0]
         pcd = pcd.select_by_index(idx)
+
+        # cl, ind = pcd.remove_radius_outlier(nb_points=150, radius=5)
+        # pcd = pcd.select_by_index(ind)
         return pcd
 
     def object(self, pcd, bbox = None):
-        bbox = [[-50, -50, -300], [50, 50, -20]] if bbox is None else bbox
+        bbox = [[-50, -70, -400], [200, 70, -20]] if bbox is None else bbox
         bbox = o3d.geometry.AxisAlignedBoundingBox(bbox [0], bbox [1])
         pcd = copy.deepcopy(pcd).crop(bbox)
         rgb = np.array(pcd.colors)
-        idx = np.where(np.average(rgb, axis=1) > 0.15)[0]
+        idx = np.where(np.average(rgb, axis=1) > 0.2)[0]
         pcd = pcd.select_by_index(idx)
+
+        # cl, ind = pcd.remove_radius_outlier(nb_points=150, radius=5)
+        # pcd = pcd.select_by_index(ind)
+
+        # cl, ind = pcd.remove_radius_outlier(nb_points=150, radius=5)
+        # pcd = pcd.select_by_index(ind)
+
         return pcd
+
+def final_noise_removal(final_object_model_):
+    final_object_model = copy.deepcopy(final_object_model_)
+    cl, ind = final_object_model.remove_radius_outlier(nb_points=200, radius=5)
+    final_object_model = final_object_model.select_by_index(ind)
+    cl, ind = final_object_model.remove_radius_outlier(nb_points=200, radius=5)
+    final_object_model = final_object_model.select_by_index(ind)
+    cl, ind = final_object_model.remove_radius_outlier(nb_points=500, radius=10)
+    final_object_model = final_object_model.select_by_index(ind)
+    return final_object_model
+
+
 
 
 class contruct_3d_model(ICP_class):
@@ -136,7 +158,12 @@ class contruct_3d_model(ICP_class):
         custom_draw_geometry_with_rotation(copy.deepcopy(self.target).rotate([[1,0,0],[0,0,1],[0,-1,0]]))
 
 
+    def temporal_coordinate_correction(self, pcd):
+        trans_init = np.array([[-1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])  ## TODO
+        tno_temp = copy.deepcopy(pcd)
+        tno_temp.transform(trans_init)
 
+        return tno_temp
 
     def _compensate_source_pcd_offset(self, source_path):
         print(source_path)
@@ -151,6 +178,7 @@ class contruct_3d_model(ICP_class):
         # tno_temp.transform(trans_init)
 
         icp_tf = super().ICP( self._add_two_pointcloud(self.source_object, self.source_hand) , self._add_two_pointcloud(self.target_object, self.target_hand), self.threshold, trans_init)
+        # icp_tf = super().ICP(self.source_object,self.target_object, self.threshold, trans_init)
 
         source_pcd.transform(icp_tf)
 
@@ -192,12 +220,10 @@ class contruct_3d_model(ICP_class):
             final_object_model = self._add_two_pointcloud(final_model.pcd_object, final_model.pcd_hand)
 
         final_object_model = final_object_model.voxel_down_sample(voxel_size=0.5)
-
-        cl, ind = final_object_model.remove_radius_outlier(nb_points=200, radius=5)
-        final_object_model = final_object_model.select_by_index(ind)
-        cl, ind = final_object_model.remove_radius_outlier(nb_points=200, radius=5)
-        final_object_model = final_object_model.select_by_index(ind)
+        final_object_model = final_noise_removal(final_object_model)
         final_object_model = final_object_model.scale(0.001, np.array([0., 0., 0.]))  # [mm] scale to [m]
+
+        final_object_model = self.temporal_coordinate_correction(final_object_model ) ## TODO : erase this with better nominal data
 
         print( np.mean( np.array(final_object_model.points), axis=0) )
         # final_object_model = self.target_pcd.scale(0.001, np.array([0., 0., 0.]))  # [mm] scale to [m]
@@ -213,6 +239,7 @@ class coordinate_postprocessing(ICP_class):
         target_pcd = o3d.io.read_point_cloud(object_model_path)
         target_pcd.scale(1000, np.array([0., 0., 0.]))
         target_pcd = target_pcd.voxel_down_sample(voxel_size=0.5)
+        target_pcd = final_noise_removal(target_pcd)
 
         target_segment = segment_component(target_pcd)
         self.target_hand = target_segment.pcd_hand
@@ -258,6 +285,7 @@ class coordinate_postprocessing(ICP_class):
         pcd = o3d.io.read_point_cloud(pc_path)
         pcd = pcd.voxel_down_sample(voxel_size=voxel_size)
 
+
         source_segment = segment_component(pcd)
         self.pcd = pcd
         self.source_hand = source_segment.pcd_hand
@@ -278,11 +306,45 @@ class coordinate_postprocessing(ICP_class):
         if self.visualize:
             super().draw_registration_result()
 
+    def _add_two_pointcloud(self, pcd1, pcd2):
+        p1_color = np.asarray(pcd1.colors)
+        p2_color = np.asarray(pcd2.colors)
+        new_pcd_color = np.concatenate((p1_color, p2_color), axis=0)
+
+        p1_point = np.asarray(pcd1.points)
+        p2_point = np.asarray(pcd2.points)
+        new_pcd_point = np.concatenate((p1_point, p2_point), axis=0)
+
+        new_pcd = o3d.geometry.PointCloud()
+        new_pcd.points = o3d.utility.Vector3dVector(new_pcd_point)
+        new_pcd.colors = o3d.utility.Vector3dVector(new_pcd_color)
+
+        return new_pcd
 
     def save_result(self, filename):
         self.pcd.transform(self.pose)
         # self.pcd.transform(self.off_trans)
         self.pcd.scale(0.001, np.array([0.,0.,0.]))
-        o3d.io.write_point_cloud(filename, self.pcd )
+        # o3d.io.write_point_cloud(filename, self.pcd )
+
+        final_object_model = copy.deepcopy(self.source_object)
+        # target_save.transform(self.pose).scale(0.001, np.array([0.,0.,0.]))
+
+        # target_save_ = copy.deepcopy(self.source_hand)
+        # target_save_.transform(self.pose).scale(0.001, np.array([0.,0.,0.]))
+
+
+
+        # final_object_model = final_noise_removal(target_save)
+        cl, ind = final_object_model.remove_radius_outlier(nb_points=100, radius=5)
+        final_object_model = final_object_model.select_by_index(ind)
+        final_object_model.transform(self.pose)
+
+
+
+        # final_object_model = final_noise_removal( self._add_two_pointcloud(target_save_,target_save))
+        final_object_model = final_object_model.scale(0.001, np.array([0.,0.,0.]))
+
+        o3d.io.write_point_cloud(filename,final_object_model  )
 
 
