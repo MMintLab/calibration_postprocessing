@@ -36,7 +36,7 @@ Create a data folder in your directory
 ```
 $ mkdir data
 ```
-Freely design the data directory according to your need. Again, We assume when the dataset pointcloud is returned from the object frame containing mild calibration error.
+Feel free to design the data directory according to your need. Again, the data files(.ply) are returned from the object frame containing mild calibration error.
 
 Example: 
 ```
