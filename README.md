@@ -11,7 +11,7 @@
 
 ## General info
 This repository is mainly about post-processing pointcloud's frame obtained from Depth camera (ex. Photoneo) and RGB-D (ex. Intel Realsense). 
-It assumes when pointcloud is generated from the moving frame (ex. End Effector Frame, Tool Frame), containing inconsistent calibration errors from the camera.
+It assumes when pointcloud is generated from the *moving frame* (ex. End Effector Frame, Tool Frame), containing inconsistent calibration errors from the camera.
 
 
 ## Installation
