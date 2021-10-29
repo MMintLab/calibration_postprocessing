@@ -40,10 +40,10 @@ def custom_draw_geometry_with_camera_trajectory(pcd):
                     "../../test_data/camera_trajectory.json")
     custom_draw_geometry_with_camera_trajectory.vis = o3d.visualization.Visualizer(
     )
-    if not os.path.exists("../../test_data/image/"):
-        os.makedirs("../../test_data/image/")
-    if not os.path.exists("../../test_data/depth/"):
-        os.makedirs("../../test_data/depth/")
+    if not os.path.exists("../../../test_data/image/"):
+        os.makedirs("../../../test_data/image/")
+    if not os.path.exists("../../../test_data/depth/"):
+        os.makedirs("../../../test_data/depth/")
 
     def move_forward(vis):
         # This function is called within the o3d.visualization.Visualizer::run() loop

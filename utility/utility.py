@@ -1,7 +1,5 @@
-import numpy as np
-import open3d as o3d
 import copy
-from o3d_utility import *
+from utility.o3d_utility import *
 
 class ICP_class:
     def ICP(self, source_pcd, target_pcd, threshold, trans_init = None):
