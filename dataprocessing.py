@@ -1,4 +1,4 @@
-from utility import *
+from utility.utility import *
 import os
 
 ## GLOBAL PARAMETERS ##

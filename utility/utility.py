@@ -1,5 +1,7 @@
 import copy
 from utility.o3d_utility import *
+import open3d as o3d
+import numpy as np
 
 class ICP_class:
     def ICP(self, source_pcd, target_pcd, threshold, trans_init = None):
@@ -83,29 +85,29 @@ class segment_component():
 
 
     def hand(self, pcd, bbox = None):
-        bbox = [[-100, -120, 30], [100, 120, 110]] if bbox is None else bbox
+        bbox = [[-100, -120, -110], [100, 120, -30]] if bbox is None else bbox
         bbox = o3d.geometry.AxisAlignedBoundingBox(bbox[0], bbox[1])
         pcd = copy.deepcopy(pcd).crop(bbox)
         # o3d.visualization.draw_geometries([ pcd ] )
 
-        rgb = np.array(pcd.colors)
-        idx = np.where(np.average(rgb, axis=1) > 0.15)[0]
-        pcd = pcd.select_by_index(idx)
+        # rgb = np.array(pcd.colors)
+        # idx = np.where(np.average(rgb, axis=1) > 0.15)[0]
+        # pcd = pcd.select_by_index(idx)
 
-        # cl, ind = pcd.remove_radius_outlier(nb_points=150, radius=5)
+        # cl, ind = pcd.remove_radius_outlier(nb_points=70, radius=5)
         # pcd = pcd.select_by_index(ind)
         return pcd
 
     def object(self, pcd, bbox = None):
-        bbox = [[-50, -70, -400], [200, 70, -20]] if bbox is None else bbox
+        bbox = [[-50, -70, 20], [200, 70, 700]] if bbox is None else bbox
         bbox = o3d.geometry.AxisAlignedBoundingBox(bbox [0], bbox [1])
         pcd = copy.deepcopy(pcd).crop(bbox)
-        rgb = np.array(pcd.colors)
-        idx = np.where(np.average(rgb, axis=1) > 0.2)[0]
-        pcd = pcd.select_by_index(idx)
+        # rgb = np.array(pcd.colors)
+        # idx = np.where(np.average(rgb, axis=1) > 0.2)[0]
+        # pcd = pcd.select_by_index(idx)
 
-        # cl, ind = pcd.remove_radius_outlier(nb_points=150, radius=5)
-        # pcd = pcd.select_by_index(ind)
+        cl, ind = pcd.remove_radius_outlier(nb_points=70, radius=5)
+        pcd = pcd.select_by_index(ind)
 
         # cl, ind = pcd.remove_radius_outlier(nb_points=150, radius=5)
         # pcd = pcd.select_by_index(ind)
@@ -114,21 +116,29 @@ class segment_component():
 
 def final_noise_removal(final_object_model_):
     final_object_model = copy.deepcopy(final_object_model_)
-    cl, ind = final_object_model.remove_radius_outlier(nb_points=200, radius=5)
+
+    rgb = np.array(final_object_model.colors)
+    idx = np.where(np.average(rgb, axis=1) > 0.2)[0]
+    final_object_model = final_object_model.select_by_index(idx)
+
+
+    cl, ind = final_object_model.remove_radius_outlier(nb_points=300, radius=5)
     final_object_model = final_object_model.select_by_index(ind)
     cl, ind = final_object_model.remove_radius_outlier(nb_points=200, radius=5)
     final_object_model = final_object_model.select_by_index(ind)
     cl, ind = final_object_model.remove_radius_outlier(nb_points=500, radius=10)
     final_object_model = final_object_model.select_by_index(ind)
+
+
     return final_object_model
 
 
 
 
 class contruct_3d_model(ICP_class):
-    def __init__(self, target_path, icp_threshold, visualize = False, icp_visualize = False):
-
+    def __init__(self, target_path, icp_threshold, mode, visualize = False, icp_visualize = False):
         target_pcd = o3d.io.read_point_cloud(target_path)
+        # target_pcd.scale(1000, np.array([0., 0., 0.]))
         target_pcd = target_pcd.voxel_down_sample(voxel_size=0.5)
         target_component = segment_component(target_pcd)
 
@@ -138,6 +148,7 @@ class contruct_3d_model(ICP_class):
         self.threshold = icp_threshold
         self.visualize = visualize
         self.icp_visualize = icp_visualize
+        self.mode = mode
 
 
     def stitch_pcd(self, source_path_list):
@@ -175,8 +186,14 @@ class contruct_3d_model(ICP_class):
         # tno_temp = copy.deepcopy(self.source_hand)
         # tno_temp.transform(trans_init)
 
-        icp_tf = super().ICP( self._add_two_pointcloud(self.source_object, self.source_hand) , self._add_two_pointcloud(self.target_object, self.target_hand), self.threshold, trans_init)
-        # icp_tf = super().ICP(self.source_object,self.target_object, self.threshold, trans_init)
+        if self.mode == 'hand':
+            icp_tf = super().ICP(self.source_hand,self.target_hand, self.threshold,trans_init)
+        elif self.mode == 'object':
+            icp_tf = super().ICP(self.source_object,self.target_object, self.threshold, trans_init)
+        elif self.mode == 'interest':
+            icp_tf = super().ICP( self._add_two_pointcloud(self.source_object, self.source_hand) , self._add_two_pointcloud(self.target_object, self.target_hand), self.threshold, trans_init)
+        else:
+            print("Error: absent of ICP modes")
 
         source_pcd.transform(icp_tf)
 
@@ -216,12 +233,14 @@ class contruct_3d_model(ICP_class):
 
         if type == 'obj_w_hand':
             final_object_model = self._add_two_pointcloud(final_model.pcd_object, final_model.pcd_hand)
+        if type == 'hand':
+            final_object_model = final_model.pcd_hand
 
         final_object_model = final_object_model.voxel_down_sample(voxel_size=0.5)
         final_object_model = final_noise_removal(final_object_model)
         final_object_model = final_object_model.scale(0.001, np.array([0., 0., 0.]))  # [mm] scale to [m]
 
-        final_object_model = self.temporal_coordinate_correction(final_object_model ) ## TODO : erase this with better nominal data
+        # final_object_model = self.temporal_coordinate_correction(final_object_model ) ## TODO : erase this with better nominal data
 
         print( np.mean( np.array(final_object_model.points), axis=0) )
         # final_object_model = self.target_pcd.scale(0.001, np.array([0., 0., 0.]))  # [mm] scale to [m]
