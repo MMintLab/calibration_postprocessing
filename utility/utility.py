@@ -1,6 +1,6 @@
-from filters import *
+from utility.filters import *
 from utility.o3d_utility import *
-from segmentation import *
+from utility.segmentation import *
 
 
 class ICP_class:
@@ -251,19 +251,19 @@ class coordinate_postprocessing(ICP_class):
         return new_pcd
 
     def save_result(self, filename):
-        self.pcd.transform(self.pose)
+        # self.pcd.transform(self.pose)
         # self.pcd.transform(self.off_trans)
-        self.pcd.scale(0.001, np.array([0.,0.,0.]))
+        # self.pcd.scale(0.001, np.array([0.,0.,0.]))
         # o3d.io.write_point_cloud(filename, self.pcd )
 
         final_object_model = copy.deepcopy(self.source_object)
+        print(np.amin( np.array(final_object_model.points),axis=0))
+        final_object_model.transform(self.pose)
         final_object_model = final_object_model.voxel_down_sample(voxel_size=0.5)
-        final_object_model = final_noise_removal(final_object_model)
 
+        final_object_model = rgb_filter_background(final_object_model)
         cl, ind = final_object_model.remove_radius_outlier(nb_points=100, radius=5)
         final_object_model = final_object_model.select_by_index(ind)
-        final_object_model.transform(self.pose)
-
 
 
         final_object_model = final_object_model.scale(0.001, np.array([0.,0.,0.]))

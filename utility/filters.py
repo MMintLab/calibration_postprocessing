@@ -4,7 +4,13 @@ import copy
 def rgb_filter_background(pcd):
     rgb = np.array(pcd.colors)
     idx = np.where(np.average(rgb, axis=1) > 0.2)[0]
-    final_object_model = pcd.select_by_index(idx)
+    pcd = pcd.select_by_index(idx)
+    return pcd
+
+def rgb_mild_filter_background(pcd):
+    rgb = np.array(pcd.colors)
+    idx = np.where(np.average(rgb, axis=1) > 0.1)[0]
+    pcd = pcd.select_by_index(idx)
     return pcd
 
 
