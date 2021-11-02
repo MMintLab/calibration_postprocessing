@@ -2,9 +2,9 @@ from utility.utility import *
 import os
 
 ## GLOBAL PARAMETERS ##
-DATA_DIR = 'data/scraping_plastic/scraping_gt_845_830'
-DATA_SAVE_DIR = 'data/scraping_plastic/object_845_830'
-TARGET_DIR = 'data/nominal_pcd/plastic_spatula_pcd_w_hand.ply'
+DATA_DIR = 'data/scraping_wok/gt_1'
+DATA_SAVE_DIR = 'data/scraping_wok/gt_1_tf'
+TARGET_DIR = 'data/nominal_pcd/panda_hand.ply'
 
 
 if __name__ == '__main__':
