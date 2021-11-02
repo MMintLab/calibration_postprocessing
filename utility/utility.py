@@ -212,10 +212,6 @@ class coordinate_postprocessing(ICP_class):
 
 
     def segment(self, pc_path, voxel_size = 0.5):
-        '''
-        Input: pointcloud directory
-        :return: segmented pointcloud
-        '''
 
         print(pc_path)
         pcd = o3d.io.read_point_cloud(pc_path)
@@ -257,7 +253,7 @@ class coordinate_postprocessing(ICP_class):
         # o3d.io.write_point_cloud(filename, self.pcd )
 
         final_object_model = copy.deepcopy(self.source_object)
-        print(np.amin( np.array(final_object_model.points),axis=0))
+        # print(np.amin( np.array(final_object_model.points),axis=0))
         final_object_model.transform(self.pose)
         final_object_model = final_object_model.voxel_down_sample(voxel_size=0.5)
 
