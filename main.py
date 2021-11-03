@@ -175,7 +175,7 @@ def ply_add_data(dir, f_n, data, deform_idx, wrench = None):
 
 
     # new_pcd = o3d.geometry.PointCloud()
-    # new_pcd.points = o3d.utility.Vector3dVector(xyz_n)
+    # new_pcd.points = o3d.utilities.Vector3dVector(xyz_n)
     # o3d.visualization.draw_geometries([new_pcd])
 
     ## Photoneo data name explicitly tells you the type

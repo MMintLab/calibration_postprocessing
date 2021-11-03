@@ -1,6 +1,6 @@
-from utility.filters import *
-from utility.o3d_utility import *
-from utility.segmentation import *
+from utilities.filters import *
+from utilities.o3d_utility import *
+from utilities.segmentation import *
 
 
 class ICP_class:
@@ -174,13 +174,13 @@ class contruct_3d_model(ICP_class):
         final_model = segment_component(self.target_pcd)
         final_object_model = final_model.pcd_object
 
-        if type == 'obj_w_hand':
+        if type == 'interest':
             final_object_model = self._add_two_pointcloud(final_model.pcd_object, final_model.pcd_hand)
         if type == 'hand':
             final_object_model = final_model.pcd_hand
 
         final_object_model = final_object_model.voxel_down_sample(voxel_size=0.5)
-        final_object_model = final_noise_removal(final_object_model)
+        final_object_model = final_noise_removal_mild(final_object_model)
         final_object_model = final_object_model.scale(0.001, np.array([0., 0., 0.]))  # [mm] scale to [m]
 
         o3d.io.write_point_cloud(save_dir, final_object_model)
@@ -190,12 +190,12 @@ class contruct_3d_model(ICP_class):
 
 
 class coordinate_postprocessing(ICP_class):
-    def __init__(self, object_model_path, icp_threshold = 100, visualize= None, task_nominal_path = None):
+    def __init__(self, object_model_path, object_seg_mode = None, icp_threshold = 100, visualize= None, task_nominal_path = None):
         ## Standard Coordinate
         target_pcd = o3d.io.read_point_cloud(object_model_path)
         target_pcd.scale(1000, np.array([0., 0., 0.]))
         target_pcd = target_pcd.voxel_down_sample(voxel_size=0.5)
-        target_pcd = final_noise_removal(target_pcd)
+
 
         target_segment = segment_component(target_pcd)
         self.target_hand = target_segment.pcd_hand
@@ -209,11 +209,11 @@ class coordinate_postprocessing(ICP_class):
         self.palm_pcd = None
         self.object_pcd = None
         self.threshold = icp_threshold
+        self.object_seg_mode = object_seg_mode
 
 
     def segment(self, pc_path, voxel_size = 0.5):
 
-        print(pc_path)
         pcd = o3d.io.read_point_cloud(pc_path)
         pcd = pcd.voxel_down_sample(voxel_size=voxel_size)
 
@@ -221,7 +221,11 @@ class coordinate_postprocessing(ICP_class):
         source_segment = segment_component(pcd)
         self.pcd = pcd
         self.source_hand = source_segment.pcd_hand
-        self.source_object = source_segment.pcd_object
+
+        if self.object_seg_mode == 'conservative_filtering':
+            self.source_object = source_segment.pcd_object
+        else:
+            self.source_object = source_segment.pcd_object_2
 
 
     def icp(self):
@@ -247,7 +251,8 @@ class coordinate_postprocessing(ICP_class):
         return new_pcd
 
     def save_result(self, filename):
-        # self.pcd.transform(self.pose)
+        self.pcd.transform(self.pose)
+        self.source_hand.transform(self.pose)
         # self.pcd.transform(self.off_trans)
         # self.pcd.scale(0.001, np.array([0.,0.,0.]))
         # o3d.io.write_point_cloud(filename, self.pcd )
@@ -257,11 +262,13 @@ class coordinate_postprocessing(ICP_class):
         final_object_model.transform(self.pose)
         final_object_model = final_object_model.voxel_down_sample(voxel_size=0.5)
 
-        final_object_model = rgb_filter_background(final_object_model)
-        cl, ind = final_object_model.remove_radius_outlier(nb_points=100, radius=5)
-        final_object_model = final_object_model.select_by_index(ind)
+        # final_object_model = rgb_filter_background(final_object_model)
+        # cl, ind = final_object_model.remove_radius_outlier(nb_points=100, radius=5)
+        # final_object_model = final_object_model.select_by_index(ind)
 
 
+        if self.visualize:
+            o3d.visualization.draw_geometries([self.target_hand,self.source_hand, final_object_model])
         final_object_model = final_object_model.scale(0.001, np.array([0.,0.,0.]))
 
         o3d.io.write_point_cloud(filename,final_object_model  )
