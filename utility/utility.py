@@ -85,6 +85,7 @@ class segment_component():
 
 
     def hand(self, pcd, bbox = None):
+        # TODO : Update bbox by your robot specifications
         bbox = [[-100, -120, -110], [100, 120, -30]] if bbox is None else bbox
         bbox = o3d.geometry.AxisAlignedBoundingBox(bbox[0], bbox[1])
         pcd = copy.deepcopy(pcd).crop(bbox)
@@ -99,6 +100,7 @@ class segment_component():
         return pcd
 
     def object(self, pcd, bbox = None):
+        # TODO : Update bbox by your Object specifications
         bbox = [[-50, -70, 20], [200, 70, 700]] if bbox is None else bbox
         bbox = o3d.geometry.AxisAlignedBoundingBox(bbox [0], bbox [1])
         pcd = copy.deepcopy(pcd).crop(bbox)
@@ -109,8 +111,6 @@ class segment_component():
         cl, ind = pcd.remove_radius_outlier(nb_points=70, radius=5)
         pcd = pcd.select_by_index(ind)
 
-        # cl, ind = pcd.remove_radius_outlier(nb_points=150, radius=5)
-        # pcd = pcd.select_by_index(ind)
 
         return pcd
 
